@@ -3,7 +3,7 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 1
+Version: 1.0
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
