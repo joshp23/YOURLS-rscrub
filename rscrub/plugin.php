@@ -201,7 +201,7 @@ function rscrub_dl($rscrub_me) {
 		// force a download
 		header('Content-Disposition: attachment; filename="rscrub.js"');
 		header('Content-Type: application/javascript');
-		header('Content-Length: ' . strlen($new));
+		header('Content-Length: ' . strlen($c));
 		header('Connection: close');
 		// clear any printed data and download output
 		ob_end_clean();
