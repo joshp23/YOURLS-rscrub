@@ -240,7 +240,7 @@ function rscrub_do_page() {
 
 				</div>
 				
-				<div id="stat_tab_pc">
+				<div id="stat_tab_pc" class="tab">
 					<p>Current total number of rscrub pass-through events: <strong>$rscrub_pass_count</strong> </p>
 					<p>Date of last counter reset: <strong>$rscrub_pass_count_reset, UTC</strong> </p>
 					
