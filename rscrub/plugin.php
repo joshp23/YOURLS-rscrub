@@ -7,6 +7,9 @@ Version: 1.01
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
+// No direct call
+if( !defined( 'YOURLS_ABSPATH' ) ) die();
+
 // Run action manager
 rscrub_mgr();
 
