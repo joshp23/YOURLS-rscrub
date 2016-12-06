@@ -13,6 +13,35 @@ Plenty of pre-formatted examples exist in the plugin's option page and the plugi
 3. Go to the rscrub settings page and make sure everything looks right.
 4. Optionally download `rscrub.js` to your server (rscrub for YOURLS will generate this file for you), and follow the instructions to add it to your apps.
 
+### Special instruction for subdmain use in Apache
+It is possible to use subdomains with Rscrub so that you do away with the prefix in the URL. I find this more intuitive. For the time being, you still need to set a prefix in order for this to work. 
+
+* You need the subdomains to be aded as aliases in your vhost.conf file, so it should look something like the following:
+```
+	ServerName sho.rt
+	ServerAlias anon.sho.rt
+	ServerAlias a.sho.rt
+```
+
+* Then you have to edit htaccess. The following example uses the default prefix settings of `+` for long urls and `@` for shortened urls; it also uses the subdomains from above, `anon.sho.rt` for long and `a.sho.rt` for short. Add the following to the top of your htaccess file, before any other rewrite rules:
+```
+## REWRITE RULES
+RewriteEngine On
+
+# RSCRUB - LONG URL
+RewriteCond %{HTTP_HOST} ^anon\.(sho\.rt)$ [NC]
+RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/+$1 [P]
+
+# RSCRUB - SHORT URL
+RewriteCond %{HTTP_HOST} ^a\.(sho\.rt)$ [NC]
+RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/@$1 [P]
+```
+With this `example.com` is scrubbed by entering `https://anon.sho.rt.com/http://example.com` 
+
+and `sho.rt/keyword` is scrubbed by entering `https://a.sho.rt/keyword`.
+
+Please note: If you are using SSL (as in the htaccess example above) make sure that you have `SSLProxyEngine on` in your vhost config. If not, simply change `https://` to `http://` in the RewriteRule.
+
 #### IMPORTANT NOTE: 
   Using HTTPS on all redirects ensures a hidden referrer on all browsers tested, however when using HTTP results may vary. In this case, some browsers will always show the last referrer, which will be the YOURLS installtion. Therefore _forcing HTTPS is the recommended method_. Trusted SSL certificates for HTTPS can be obtained from [Let's Encrypt](https://letsencrypt.org/) for free.
 #### DISCLAIMERS:
