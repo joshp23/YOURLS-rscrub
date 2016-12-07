@@ -3,13 +3,10 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 1.01
+Version: 1.1
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
-// No direct call
-if( !defined( 'YOURLS_ABSPATH' ) ) die();
-
 // Run action manager
 rscrub_mgr();
 
@@ -22,18 +19,9 @@ function rscrub_add_page() {
 // Display admin page
 function rscrub_do_page() {
 
-	// Check if a form was submitted
-	if( isset( $_POST['rscrub_scope'] ) ) {
-	
-		// Check nonce
-		yourls_verify_nonce( 'rscrub' );
-		
-		// Process form - update option in database
-		yourls_update_option( 'rscrub_scope', $_POST['rscrub_scope'] );
-		if(isset($_POST['rscrub_prefix'])) yourls_update_option( 'rscrub_prefix', $_POST['rscrub_prefix'] );
-		if(isset($_POST['rscrub_passthrough'])) yourls_update_option( 'rscrub_passthrough', $_POST['rscrub_passthrough'] );
-		if(isset($_POST['rscrub_pass_prefix'])) yourls_update_option( 'rscrub_pass_prefix', $_POST['rscrub_pass_prefix'] );
-	}
+	// Check for config form submissions
+	rscrub_primary_ops();
+	rscrub_pass_sub_config();
 	
 	// Get values from database
 	$rscrub_scope = yourls_get_option( 'rscrub_scope' );
@@ -42,10 +30,14 @@ function rscrub_do_page() {
 	$rscrub_pass_prefix = yourls_get_option( 'rscrub_pass_prefix' );
 	$rscrub_pass_count = yourls_get_option( 'rscrub_pass_count' );
 	$rscrub_pass_count_reset = yourls_get_option( 'rscrub_pass_count_reset' );
+	$rscrub_pass_subdomain_do = yourls_get_option( 'rscrub_pass_subdomain_do' );
+	$rscrub_pass_subdomain_is = yourls_get_option( 'rscrub_pass_subdomain_is' );
 		
-	// set prefix defaults
+	// set some defaults
 	if( $rscrub_prefix == null ) $rscrub_prefix = '@';
 	if($rscrub_pass_prefix == null) $rscrub_pass_prefix = '+';
+	if($rscrub_pass_subdomain_is == null) $rscrub_pass_subdomain_is = 'anon';
+	if($rscrub_pass_subdomain_do == null) $rscrub_pass_subdomain_do = 'false';
 	if($rscrub_pass_count_reset == null) $rscrub_pass_count_reset = 'The counter has never been reset';
 	
 	// set variable objects and form defaults
@@ -65,18 +57,33 @@ function rscrub_do_page() {
 		$vis_p = 'inline';
 	}
 	
+	if ($rscrub_pass_subdomain_do !== 'true') {
+		$sub_chk = null;
+	} else {
+		$sub_chk = 'checked';
+	}
+	
 	// Create nonce
 	$nonce = yourls_create_nonce( 'rscrub' );
 	
-	// Prepare information for passing
+	// Prepare information for passing and forms
 	$me = $_SERVER['HTTP_HOST'];
-	$rscrub_me = $me . '/' . $rscrub_pass_prefix;
+	$me_parts = explode('.', $me);
+		$me_0 = $me_parts[0];
+		$me_1 = $me_parts[1];
+	
+	if ($rscrub_pass_subdomain_do !== 'true' ) {
+		$rscrub_me = $me . '/' . $rscrub_pass_prefix;
+	} else {
+		$rscrub_me = $rscrub_pass_subdomain_is . '.' . $me . '/';
+	}
 	
 	// rscrub.js download
 	rscrub_dl($rscrub_me);
 	
 	// obvious
 	rscrub_pass_count_reset();
+
 
 	echo <<<HTML
 		<link rel="stylesheet" href="/css/infos.css?v=1.7.2" type="text/css" media="screen" />
@@ -88,6 +95,7 @@ function rscrub_do_page() {
 				<div class="wrap_unfloat">
 					<ul id="headers" class="toggle_display stat_tab">
 						<li class="selected"><a href="#stat_tab_options"><h2>Rscrub Options</h2></a></li>
+						<li class="selected"><a href="#stat_tab_sub_options"><h2>Subdomain Scrubbing</h2></a></li>
 						<li style="display:$vis_p;"><a href="#stat_tab_toolbox"><h2>Tools</h2></a></li>
 						<li style="display:$vis_p;"><a href="#stat_tab_pc"><h2>Pass-through Counter</h2></a></li>
 					</ul>
@@ -112,7 +120,7 @@ function rscrub_do_page() {
 			
 						<div style="display:$vis_some;">	
 							<p>Contitional scrubbing uses a prefix with the short url alias.</p> 
-							<p><strong>Example:</strong> <code>https://$me/@V</code>  will scrub the referrer from the short url "V", where <code>https://$me/V</code> is the usual path with referrer in tact.</p>
+							<p><strong>Example:</strong> <code>https://$me/$rscrub_prefix&#173;V</code>  will scrub the referrer from the short url "V", where <code>https://$me/V</code> is the usual path with referrer in tact.</p>
 							<p>Set a custom prefix, defaults to '@'</p>
 							<p>
 								<label for="rscrub_prefix">Prefix Trigger </label> 
@@ -125,7 +133,7 @@ function rscrub_do_page() {
 						<h3>Pass-through URL scrubbing</h3>
 						
 						<p>Rscrub can work on un-shortened urls by way of an additional prefix to the "Prefix and Shorten" syntax.</p>
-						<p><strong>Example:</strong> <code>https://$me/+https://example.com</code> will scrub the referrer but will not shorten the link.</p>
+						<p><strong>Example:</strong> <code>https://$me/$rscrub_pass_prefix&#173;https://example.com</code> will scrub the referrer but will not shorten the link.</p>
 						<div class="checkbox">
 						  <label>
 						    <input type="hidden" name="rscrub_passthrough" value="false" />
@@ -149,12 +157,102 @@ function rscrub_do_page() {
 					</form>
 				</div>
 				
+				<div id="stat_tab_sub_options" class="tab">
+				
+					<p>Rscrub can use subdomains to scrub urls, this requires access to your Virtual Host config files and important additions to the YOURLS <code>.htaccess</code> file. When using this option the prefix settings are still relevant.</p>
+					
+					<div style="display:$vis_p;">
+					
+						<h3>Pass-through URL scrubbing: Subdomain Settings</h3>
+						
+						<p>If you are using a subdomain for pass-through scrubbing of long url's, please set the options below. Prefix options are still relevant.</p>
+						<p>Note that this will change many values in the Tools dialogue, and it will make some important changes to <code>rscrub.js</code>.</p>
+					
+						<form class="form-horizontal" id="rscrub_pass_subdomain" name="rscrub_pass_subdomain" method="post">
+							<div class="checkbox">
+							  <label>
+							    <input type="hidden" name="rscrub_pass_subdomain_do" value="false" />
+							    <input name="rscrub_pass_subdomain_do" type="checkbox" value="true" $sub_chk > Use rscrub pass-through subdomain?
+							  </label>
+							</div>
+							
+							<p>
+								<label for="rscrub_pass_subdomain_is">Pass-through Subdomain </label> 
+								<input type="text" id="rscrub_pass_subdomain_is" name="rscrub_pass_subdomain_is" value="$rscrub_pass_subdomain_is" /> The default long url scrubbing subdomain is <code>anon.$me</code>.
+							</p>
+							
+							<input type="hidden" name="nonce" value="$nonce" />	
+							<p><input type="submit" value="Submit" /></p>
+							
+						</form>
+						<hr>
+					</div>
+					
+					<h3>Setting up subdomain scrubbing</h3>
+					
+					This will explain how to set up subdomain scrubbing on an Apache webserver.
+					
+					<h4>Part one: The virtual host</h4>
+					
+					<p>To use a subdomain for a prefix function, we first need to add it in to the YOURLS virtual host conf file in Apache using the <code>ServerAlias</code> directive. Your conf file should look something like the following; it should be easy to notice that the subdomain "<code>a</code>" is being used for our short url function.</p>
+					
+<pre>
+&#60;VirtualHost *:80&#62;
+
+	ServerName $me
+	
+	<strong>ServerAlias a.$me
+	<span style="display:$vis_p;">ServerAlias $rscrub_pass_subdomain_is.$me</span></strong>
+	
+	DocumentRoot /var/www/YOURLS/
+	&#60;Directory /var/www/YOURLS/&#62;
+		Options -Indexes +FollowSymLinks +MultiViews
+		AllowOverride All
+		Order allow,deny
+		allow from all
+	&#60;/Directory&#62;
+
+	# Possible values include: debug, info, notice, warn, error, crit,
+	# alert, emerg.
+	LogLevel info
+	ErrorLog /var/log/apache2/error.log
+	CustomLog /var/log/apache2/access.log combined
+	
+&#60;/VirtualHost&#62;
+</pre>
+					<p>You might find your Apache default virtual host config file at <code>/etc/apache2/sites-available/000-default.conf</code>.</p>
+					<p>Once you have added that in, make sure to save the file and restart Apache.</p>
+					
+					<h4>Part Two: YOURLS .htaccess file</h4>
+					
+					<p>The following rules need to be added in to the very top of the YOURLS .htaccess file. They make use of both <code>mod_rewrite</code> and <code>mod_proxy</code>, so both of these modules need to be enabled on your server.
+					
+<pre>
+RewriteEngine On
+
+# RSCRUB - SHORT URL
+RewriteCond %{HTTP_HOST} ^<strong>a</strong>\.(<strong>$me_0</strong>\.<strong>$me_1</strong>)$ [NC]
+RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$rscrub_prefix</strong>$1 [P]
+
+<span style="display:$vis_p;"># RSCRUB - LONG URL
+RewriteCond %{HTTP_HOST} ^<strong>$rscrub_pass_subdomain_is</strong>\.(<strong>$me_0</strong>\.<strong>$me_1</strong>)$ [NC]
+RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$rscrub_pass_prefix</strong>$1 [P]</span>
+</pre>
+
+				<p>These rules have been generated using this site's current configuration. Any changes to your setup will necessitate an alteration of these rules in your system.</p>
+				<p><strong>NOTE:</strong> If you are using SSL on your site, which is reccomended for this module, make certain to set <code>SSLProxyEngine on</code> in your virtual host, otherwise these proxies will fail. If not, you will have to adjust the above code accordingly.</p>
+
+				</div>
+				
 				<div id="stat_tab_toolbox" class="tab">
 				
 					<h3>Rscrub javascript client</h3>
 					
-					<p>You can place a javascript function at the bottom of your page that will scrub any link that has already been written. This can be used to scrub links on pre-existing pages, or to just set it, and code on as usual.</p>
-					<p>Place the following code into your html just above the <code>&lt;/body&gt;</code> tag, or just put it into your <code>footer.php</code>.
+					<p>You can enforce scrubbing for every link on a page or site. This solution has two parts.</p>
+					
+					<h4>Part One: Client Side</h4>
+					
+					<p>Place this in your html just above the <code>&lt;/body&gt;</code> tag. If applicable, it can be put into <code>footer.php</code>. <strong>Note:</strong> Any link that appears after this code is called will not be scrubbed.</p>
 					
 <pre>
 &lt;script src="https://$me/io/rscrub.js"&gt;&lt;/script&gt;
@@ -165,8 +263,11 @@ function rscrub_do_page() {
 </pre>
 					
 					<p>In the above example, any link that belongs to the <code>example.com</code> or <code>$me</code> domains will be left unscrubbed. Adjust to suit.</p>
-					<p>Additionally we are calling the script <code>rscrub.js</code> from the folder <code>$me/io</code>, which needs to be created on this server.</p>
-					<p>Finally, bulk scrubbing can go over ssl, or not. If your server is SSL capable, please select the option below.</p>
+					
+					<h4>Part Two: Server Side</h4>
+					
+					<p>The client side code calls the script <code>rscrub.js</code>, which first has to be configured here and then downloaded to your server. The above example places it at <code>$me/io</code>, so the foler <code>io</code> needs to be created in the YOURLS root folder.</p>
+					<p>Bulk scrubbing can go over ssl, or not. If your server is SSL capable, please select the option below.</p>
 					
 					<form class="form-horizontal" id="rscrub_dl" name="rscrub_dl" method="post">
 					
@@ -175,13 +276,13 @@ function rscrub_do_page() {
 						    <input type="hidden"  id="rscrub_dl" name="rscrub_ssl"  value="no" />
 						    <input type="checkbox" id="rscrub_dl" name="rscrub_ssl" value="yes"> Scrub over SSL?.
 						  </label>
+						  <small>This will reset after download</small>
 						</div>
 						
 						</br>
-						
 						<button type="submit" class="btn btn-primary">Download</button>
 						
-						<p>Please click here to download <code>rscrub.js</code> to your server. Remember to redownload this script any time you change the prefix, currently "$rscrub_pass_prefix".<p>
+						<p>Click above to download <code>rscrub.js</code>. Remember to grab a fresh copy of this script any time you change your settings. Currently the prefix is set to "<code>$rscrub_pass_prefix</code>", and your subdomain config is set to "<code>$rscrub_pass_subdomain_do</code>" for the subdomain "<code>$rscrub_pass_subdomain_is.$me</code>".<p>
 						
 					</form>
 					
@@ -263,12 +364,50 @@ function rscrub_do_page() {
 		</div>
 HTML;
 }
-function rscrub_dl($rscrub_me) {
 
+function rscrub_primary_ops() {
+
+	// Check if the form was submitted
+	if( isset( $_POST['rscrub_scope'] ) ) {
+	
+		// Check nonce
+		yourls_verify_nonce( 'rscrub' );
+		
+		// Process form - update option in database
+		yourls_update_option( 'rscrub_scope', $_POST['rscrub_scope'] );
+		if(isset($_POST['rscrub_prefix'])) yourls_update_option( 'rscrub_prefix', $_POST['rscrub_prefix'] );
+		if(isset($_POST['rscrub_passthrough'])) yourls_update_option( 'rscrub_passthrough', $_POST['rscrub_passthrough'] );
+		if(isset($_POST['rscrub_pass_prefix'])) yourls_update_option( 'rscrub_pass_prefix', $_POST['rscrub_pass_prefix'] );
+		
+		echo '<font color="green">Rscrub options saved. Have a nice day!</font>';
+	}
+}
+/*
+	Forms
+*/
+// Subdomain Setting for pass through script
+function rscrub_pass_sub_config() {
+
+	// did the reset form get submitted?
+	if( isset( $_POST['rscrub_pass_subdomain_do'] ) ) {
+		
+		// Check nonce
+		yourls_verify_nonce( 'rscrub' );
+		
+		// update the options
+		yourls_update_option( 'rscrub_pass_subdomain_do', $_POST['rscrub_pass_subdomain_do'] );
+		if(isset($_POST['rscrub_pass_subdomain_do'])) 
+			yourls_update_option( 'rscrub_pass_subdomain_do', $_POST['rscrub_pass_subdomain_do'] );
+
+		echo '<font color="green">Pass through subdomain options saved. Have a nice day!</font>';
+	}
+}
+
+// rscrub.js download manager
+function rscrub_dl($rscrub_me) {
 
 	// Was the form submitted?
 	if( isset( $_POST['rscrub_ssl'] ) ) {
-	
 	
 		// protocol identifier: ssl?
 		if( $_POST['rscrub_ssl'] !== 'no' ) {
@@ -277,25 +416,21 @@ function rscrub_dl($rscrub_me) {
 			$pi ='http://';
 		}
 		
-		
 		// get the dist file and custom strings ready
 		$rscrub_var = $pi . $rscrub_me;
 		$a = file_get_contents( dirname( __FILE__ )."/inc/rscrub-dist.js");
 		$b = substr_replace($a, $rscrub_var, '13', 0);
-		
 		
 		// timestamp the script output
 		$now = date( 'M d, Y g:i A');
 		$stamp = 'This script was auto-generated by rscrub for YOURLS on ' . $now . ' UTC';
 		$c = substr_replace($b, $stamp, '3', 0);
 		
-		
 		// force a download
 		header('Content-Disposition: attachment; filename="rscrub.js"');
 		header('Content-Type: application/javascript');
 		header('Content-Length: ' . strlen($c));
 		header('Connection: close');
-		
 		
 		// clear any printed data and download output
 		ob_end_clean();
@@ -305,7 +440,7 @@ function rscrub_dl($rscrub_me) {
 	}
 }
 
-// Reset the counter
+// Reset the pass-through counter
 function rscrub_pass_count_reset() {
 
 	// did the reset form get submitted?
@@ -326,7 +461,9 @@ function rscrub_pass_count_reset() {
 		}
 	}
 }
-
+/*
+	Scrubbing engine
+*/
 // Action Manager
 function rscrub_mgr() {
 
@@ -403,18 +540,17 @@ function rscrub_lf_passthrough( $args ) {
 		
 		// send url to scrubber
 		rscrub($url);
-		
 		exit;
 	}
 }
 
 // actual scrubbing
 function rscrub( $url ) {
-
-	// change the location on the parent document from within an iframe
-	// works with all major browsers as of 2015-05-12.
-	echo "<iframe style=\"display:none\" src=\"javascript:parent.location.replace('".$url."'+(parent.location.hash||''))\">";
 	
+	// change the location on the parent document from within an iframe
+	// works with all major browsers as of 2015-05-12	
+	echo "<iframe style=\"display:none\" src=\"javascript:parent.location.replace('".$url."'+(parent.location.hash||''))\">";
+
 	// backup method (results may vary)
 	// May scrub under SSL, will typically show the LAST redirect url (the yourls url).
 	// 1 second delay so the iframe gets a chance first.
