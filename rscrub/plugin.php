@@ -388,7 +388,7 @@ function rscrub_primary_ops() {
 // Subdomain Setting for pass through script
 function rscrub_pass_sub_config() {
 
-	// did the reset form get submitted?
+	// did the passthrough form get submitted?
 	if( isset( $_POST['rscrub_pass_subdomain_do'] ) ) {
 		
 		// Check nonce
@@ -396,8 +396,8 @@ function rscrub_pass_sub_config() {
 		
 		// update the options
 		yourls_update_option( 'rscrub_pass_subdomain_do', $_POST['rscrub_pass_subdomain_do'] );
-		if(isset($_POST['rscrub_pass_subdomain_do'])) 
-			yourls_update_option( 'rscrub_pass_subdomain_do', $_POST['rscrub_pass_subdomain_do'] );
+		if(isset($_POST['rscrub_pass_subdomain_is'])) 
+			yourls_update_option( 'rscrub_pass_subdomain_is', $_POST['rscrub_pass_subdomain_is'] );
 
 		echo '<font color="green">Pass through subdomain options saved. Have a nice day!</font>';
 	}
