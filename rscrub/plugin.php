@@ -3,7 +3,7 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 1.1
+Version: 1.2.0
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
@@ -84,7 +84,6 @@ function rscrub_do_page() {
 	// obvious
 	rscrub_pass_count_reset();
 
-
 	echo <<<HTML
 		<link rel="stylesheet" href="/css/infos.css?v=1.7.2" type="text/css" media="screen" />
 		<script src="/js/infos.js?v=1.7.2" type="text/javascript"></script>
@@ -155,6 +154,7 @@ function rscrub_do_page() {
 						<p><input type="submit" value="Submit" /></p>
 						
 					</form>
+					<p><strong>Note:</strong> There is a problem of having no preview and no identifying information appear when posting scrubbed links to certain social media sites. This problem can be addressed: if the Snapshot Visual Preview plugin is installed, properly configured, and enabled, then Rscrub will provide a snapshot preview and the proper headers to these sites automatically. Please see the Snapshot project page on <a href="https://github.com/joshp23/YOURLS-Snapshot" target="_blank">github</a> for more information.</p>
 				</div>
 				
 				<div id="stat_tab_sub_options" class="tab">
@@ -326,7 +326,7 @@ RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$rscrub_pass_prefix</strong>$1
 					<h4>JS Function</h4>
 					
 					<p>Similarly, we can use a javascript function to shorten links.</p>
-					<p>Here the function must appear above whatever link you want to use it on.</p>					
+					<p>Here the function must appear above whatever link you want to use it on.</p>
 
 <pre>
 &lt;script language="JavaScript"&gt;
@@ -364,7 +364,10 @@ RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$rscrub_pass_prefix</strong>$1
 		</div>
 HTML;
 }
-
+/*
+	Forms
+*/
+// Primary Settings
 function rscrub_primary_ops() {
 
 	// Check if the form was submitted
@@ -382,9 +385,7 @@ function rscrub_primary_ops() {
 		echo '<font color="green">Rscrub options saved. Have a nice day!</font>';
 	}
 }
-/*
-	Forms
-*/
+
 // Subdomain Setting for pass through script
 function rscrub_pass_sub_config() {
 
@@ -546,6 +547,11 @@ function rscrub_lf_passthrough( $args ) {
 
 // actual scrubbing
 function rscrub( $url ) {
+
+	// quick check for social share preview
+	$keys = yourls_get_longurl_keywords( $url );
+	$keyword = $keys[0];
+	rscrub_social_chk( $keyword, $url );
 	
 	// change the location on the parent document from within an iframe
 	// works with all major browsers as of 2015-05-12	
@@ -555,5 +561,63 @@ function rscrub( $url ) {
 	// May scrub under SSL, will typically show the LAST redirect url (the yourls url).
 	// 1 second delay so the iframe gets a chance first.
 	echo "<meta http-equiv=\"refresh\" content=\"1; url=".$url."\" />";
+}
+
+
+// Check for social link shares
+function rscrub_social_chk( $keyword, $url ) {
+
+	if ( 	
+		// Here are some user agents to look out for. Add as neccessary.
+		// please open an issue (or a pull request) to have more added: https://github.com/joshp23/YOURLS-rscrub/issues
+		strpos($_SERVER["HTTP_USER_AGENT"], "facebookexternalhit") 	!== false ||          
+    		strpos($_SERVER["HTTP_USER_AGENT"], "Facebot") 			!== false ||          
+    		strpos($_SERVER["HTTP_USER_AGENT"], "Twitterbot") 		!== false ||          
+    		strpos($_SERVER["HTTP_USER_AGENT"], "Tumblr") 			!== false ||          
+    		strpos($_SERVER["HTTP_USER_AGENT"], "Google") 			!== false
+												) {
+		// Here is the command to be called if there is a match.
+		// TODO: add more options here. Please submit an issue or pull request.
+		if((yourls_is_active_plugin('snapshot/plugin.php')) !== false) 
+			rscrub_snapshpot_preview( $keyword, $url );
+	}
+	
+}
+
+// snapshot integration (https://github.com/joshp23/YOURLS-Snapshot)
+function rscrub_snapshpot_preview( $keyword, $url ) {
+
+	$title  = yourls_get_keyword_title( $keyword );
+	
+	$base 	= YOURLS_SITE;
+	$id 	= 'snapshot';
+	$fn 	= snapshot_request($keyword, $url);
+	
+	if($fn == 'alt') {
+
+		$id = 'snapshot-alt';
+		$fn = array(
+			'sorry.png',
+			'420'
+		);
+	}
+	
+	$now = round(time()/60);
+	$key = md5($now . $id);
+	
+	$img = $base.'/srv/?id='.$id.'&key='.$key.'&fn='.$fn[0];
+	$preview = 	'<html>
+				<head>
+					<meta property="og:image" content="'.$img.'" />
+					<meta property="og:title" content="'.$title.'" />
+				</head>
+		
+				<body>
+					<img src="'.$img.'" width="800" />
+				</body>
+			</html>';
+	
+	echo $preview;
+	die();
 }
 ?>

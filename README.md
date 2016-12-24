@@ -6,7 +6,9 @@ Rscrub is an evolution of the [Hide Referrer](https://github.com/Sire/yourls-hid
 ## What sets it apart from its predecessor?
 Rscrub's primary departure from Hide Referrer is that it also (optionally) allows for the referrer scrubbing of non-shortend urls, acting in a similar fasion as such sites as [Anonymizer.info](https://www.anonymizer.info/), [href.li](https://href.li/), or [DeReferrer.Me](https://dereferer.me/). If this option is enabled then you also have the ability to download a customized javascript, `rscrub.js`, that you can install on your server and call from other apps in order to scrub an entire blog, anonymize all links coming out of a forum, or any number of other uses. You can easily run your own, trusted, anonymizing link service.
 
-Plenty of pre-formatted examples exist in the plugin's option page and the plugin itself is very self explanatory. 
+Also, Rscrub has seamless [Snapshot](https://github.com/joshp23/YOURLS-Snapshot) integration. There is a problem of having no preview and no identifying information appear when posting scrubbed links to certain social media sites, Snapshot integration addresses this problem by serving up a locally stored image preview of the site, along with the proper headers, to give social media sites something to present when posting.  
+
+Plenty of pre-formatted autoamtion examples exist in the plugin's option page, and the plugin itself is very self explanatory. 
 ## Installation
 1. Download this repo and extract the rscrub folder to your YOURLS/user/plugins/ folder.
 2. Enable the plugin in the Admin seciton of YOURLS
