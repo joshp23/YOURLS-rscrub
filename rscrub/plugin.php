@@ -3,7 +3,7 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 1.2.0
+Version: 1.2.1
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
@@ -550,7 +550,11 @@ function rscrub( $url ) {
 
 	// quick check for social share preview
 	$keys = yourls_get_longurl_keywords( $url );
-	$keyword = $keys[0];
+	if($keys == null) {
+		$keyword = $keys;
+	} else {
+		$keyword = $keys[0];
+	}
 	rscrub_social_chk( $keyword, $url );
 	
 	// change the location on the parent document from within an iframe
