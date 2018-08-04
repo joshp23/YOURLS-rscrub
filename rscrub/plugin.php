@@ -3,7 +3,7 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 1.2.1
+Version: 1.2.2
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
@@ -15,7 +15,18 @@ yourls_add_action( 'plugins_loaded', 'rscrub_add_page' );
 function rscrub_add_page() {
 	yourls_register_plugin_page( 'rscrub', 'Rscrub', 'rscrub_do_page' );
 }
-
+// Maybe inject js/css for admin page
+yourls_add_action( 'html_head', 'rscrub_head' );
+function rscrub_head() {
+	if ( defined('YOURLS_JP23_HEAD_FILES') == false ) {
+		define( 'YOURLS_JP23_HEAD_FILES', true );
+		$home = YOURLS_SITE;
+		echo "\n<! --------------------------JP23_HEAD_FILES Start-------------------------- >\n";
+		echo "<link rel=\"stylesheet\" href=\"".$home."/css/infos.css?v=".YOURLS_VERSION."\" type=\"text/css\" media=\"screen\" />\n";
+		echo "<script src=\"".$home."/js/infos.js?v=".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
+		echo "<! --------------------------JP23_HEAD_FILES END---------------------------- >\n";
+	}
+}
 // Display admin page
 function rscrub_do_page() {
 
@@ -84,10 +95,10 @@ function rscrub_do_page() {
 	// obvious
 	rscrub_pass_count_reset();
 
+	$file = dirname( __FILE__ )."/plugin.php";
+	$data = yourls_get_plugin_data( $file );
+	$v = $data['Version'];
 	echo <<<HTML
-		<link rel="stylesheet" href="/css/infos.css?v=1.7.2" type="text/css" media="screen" />
-		<script src="/js/infos.js?v=1.7.2" type="text/javascript"></script>
-
 		<div id="wrap">
 			<div id="tabs">
 			
@@ -255,7 +266,7 @@ RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$rscrub_pass_prefix</strong>$1
 					<p>Place this in your html just above the <code>&lt;/body&gt;</code> tag. If applicable, it can be put into <code>footer.php</code>. <strong>Note:</strong> Any link that appears after this code is called will not be scrubbed.</p>
 					
 <pre>
-&lt;script src="https://$me/io/rscrub.js"&gt;&lt;/script&gt;
+&lt;script src="https://$me/io/rscrub.js?v=$v"&gt;&lt;/script&gt;
 &lt;script type='text/javascript'&gt;&lt;!--
 	protected_links = 'example.com,$me';
 	auto_anonymize();
