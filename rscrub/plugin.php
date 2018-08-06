@@ -518,8 +518,14 @@ function rscrub_mgr() {
 	// scrub ref w/out shorten
 	$rscrub_passthrough = yourls_get_option( 'rscrub_passthrough' );
 	if($rscrub_passthrough == 'true') {
+		yourls_add_action( 'pre_get_request', 'rscrub_change_request' );
 		yourls_add_action( 'loader_failed', 'rscrub_lf_passthrough' );
 	} 	
+}
+
+// change possible query string to pass using a character not possible in urls
+function rscrub_change_request( $values ) {
+        $_SERVER['REQUEST_URI'] = str_replace('?','°',$_SERVER['REQUEST_URI']);
 }
 
 // universal scrubbing for short url's
@@ -553,6 +559,9 @@ function rscrub_loader_failed_0( $args ) {
 }
 // pass-through scrubbing
 function rscrub_lf_passthrough( $args ) {
+	
+	// Reverse Query String Replacement
+        $args[0] = str_replace('°','?',$args[0]);
 
 	//get the prefix & set a default value
 	$rscrub_pass_prefix = yourls_get_option( 'rscrub_pass_prefix' );
@@ -577,6 +586,9 @@ function rscrub_lf_passthrough( $args ) {
 }
 // actual scrubbing
 function rscrub( $url ) {
+	
+	// Add filter hook to enable modification of url or integration of statistics
+	$url  = yourls_apply_filter( 'rscrub_pre_redirect', $url );
 
 	// quick check for social share preview
 	$keys = yourls_get_longurl_keywords( $url );
