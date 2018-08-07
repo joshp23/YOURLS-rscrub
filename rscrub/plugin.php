@@ -3,14 +3,12 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 1.3.0
+Version: 2.0.0
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
 // rscrub.js dl
 yourls_add_action( 'pre_html_logo', 'rscrub_dl' );
-// Run action manager
-rscrub_mgr();
 // Add the admin page
 yourls_add_action( 'plugins_loaded', 'rscrub_add_page' );
 function rscrub_add_page() {
@@ -54,7 +52,7 @@ function rscrub_do_page() {
 		$vis_p = 'inline';
 	}
 	
-	if ($o[6] !== 'true') {
+	if ($o[5] !== 'true') {
 		$sub_chk = null;
 	} else {
 		$sub_chk = 'checked';
@@ -67,8 +65,8 @@ function rscrub_do_page() {
 	$h = $_SERVER['HTTP_HOST'];
 	$x = explode('.', $h);
 	
-	if ($o[6] !== 'true' ) $url = $h . '/' . $o[3];
-	else $url = $o[7] . '.' . $h . '/';
+	if ($o[5] !== 'true' ) $url = $h . '/' . $o[1];
+	else $url = $o[6] . '.' . $h . '/';
 	
 	rscrub_pass_count_reset();
 
@@ -119,21 +117,13 @@ function rscrub_do_page() {
 						
 						<h3>Pass-through URL scrubbing</h3>
 						
-						<p>Rscrub can work on un-shortened urls by way of an additional prefix to the "Prefix and Shorten" syntax.</p>
-						<p><strong>Example:</strong> <code>https://$h/$o[3]&#173;https://example.com</code> will scrub the referrer but will not shorten the link.</p>
+						<p>Rscrub can work on un-shortened urls by way of an additional prefix to the "Prefix and Shorten" syntax using the same prefix as the short urls.</p>
+						<p><strong>Example:</strong> <code>https://$h/$o[1]&#173;https://example.com</code> will scrub the referrer but will not shorten the link.</p>
 						<div class="checkbox">
 						  <label>
 						    <input type="hidden" name="rscrub_passthrough" value="false" />
 						    <input name="rscrub_passthrough" type="checkbox" value="true" $p_chk > Allow rscrub pass-through?
 						  </label>
-						</div>
-						
-						<div style="display:$vis_p;">
-							<p>Set a custom prefix, defaults to '+'</p>
-							<p>
-								<label for="rscrub_pass_prefix">Prefix Trigger </label>
-								<input type="text" id="rscrub_pass_prefix" name="rscrub_pass_prefix" value="$o[3]" /> <small>Changing this value might break rscrub</small>
-							</p>
 						</div>
 						
 						<hr>
@@ -166,7 +156,7 @@ function rscrub_do_page() {
 							
 							<p>
 								<label for="rscrub_pass_subdomain_is">Pass-through Subdomain </label> 
-								<input type="text" id="rscrub_pass_subdomain_is" name="rscrub_pass_subdomain_is" value="$o[7]" /> The default long url scrubbing subdomain is <code>anon.$h</code>.
+								<input type="text" id="rscrub_pass_subdomain_is" name="rscrub_pass_subdomain_is" value="$o[6]" /> The default long url scrubbing subdomain is <code>anon.$h</code>.
 							</p>
 							
 							<input type="hidden" name="nonce" value="$nonce" />	
@@ -182,15 +172,14 @@ function rscrub_do_page() {
 					
 					<h4>Part one: The virtual host</h4>
 					
-					<p>To use a subdomain for a prefix function, we first need to add it in to the YOURLS virtual host conf file in Apache using the <code>ServerAlias</code> directive. Your conf file should look something like the following; it should be easy to notice that the subdomain "<code>a</code>" is being used for our short url function.</p>
+					<p>To use a subdomain for a prefix function, we first need to add it in to the YOURLS virtual host conf file in Apache using the <code>ServerAlias</code> directive. Your conf file should look something like the following.</p>
 					
 <pre>
 &#60;VirtualHost *:80&#62;
 
 	ServerName $h
 	
-	<strong>ServerAlias a.$h
-	<span style="display:$vis_p;">ServerAlias $o[7].$h</span></strong>
+	<strong>ServerAlias $o[6].$h</strong>
 	
 	DocumentRoot /var/www/YOURLS/
 	&#60;Directory /var/www/YOURLS/&#62;
@@ -219,12 +208,14 @@ function rscrub_do_page() {
 RewriteEngine On
 
 # RSCRUB - SHORT URL
-RewriteCond %{HTTP_HOST} ^<strong>a</strong>\.(<strong>$x[0]</strong>\.<strong>$x[1]</strong>)$ [NC]
-RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$o[1]</strong>$1 [P]
+RewriteCond %{HTTP_HOST} ^<strong>$o[6]</strong>\.$ [NC]
+RewriteCond %{REQUEST_URI} !^https?://.* [NC]
+RewriteRule ^(.*)$ https://<strong>$h/$o[1]</strong>$1 [P]
 
 <span style="display:$vis_p;"># RSCRUB - LONG URL
-RewriteCond %{HTTP_HOST} ^<strong>$o[7]</strong>\.(<strong>$x[0]</strong>\.<strong>$x[1]</strong>)$ [NC]
-RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$o[3]</strong>$1 [P]</span>
+RewriteCond %{HTTP_HOST} ^<strong>$o[6]</strong>\.$ [NC]
+RewriteRule ^(https?://?)(.*)$ https://<strong>$h/$o[3]</strong>$2 [P]</span>
+
 </pre>
 
 				<p>These rules have been generated using this site's current configuration. Any changes to your setup will necessitate an alteration of these rules in your system.</p>
@@ -277,7 +268,7 @@ RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$o[3]</strong>$1 [P]</span>
 						<input type="hidden"  id="rscrub_dl" name="rscrub_dl" />
 						<button type="submit" class="btn btn-primary">Download</button>
 						
-						<p>Click above to download <code>rscrub.js</code>. Remember to grab a fresh copy of this script any time you change your settings. Currently the prefix is set to "<code>$o[3]</code>", and your subdomain config is set to "<code>$o[6]</code>" for the subdomain "<code>$o[7].$h</code>".<p>
+						<p>Click above to download <code>rscrub.js</code>. Remember to grab a fresh copy of this script any time you change your settings. Currently the prefix is set to "<code>$o[1]</code>", and your subdomain config is set to "<code>$o[5]</code>" for the subdomain "<code>$o[6].$h</code>".<p>
 						
 					</form>
 					
@@ -340,8 +331,8 @@ RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/<strong>$o[3]</strong>$1 [P]</span>
 				</div>
 				
 				<div id="stat_tab_pc" class="tab">
-					<p>Current total number of rscrub pass-through events: <strong>$o[4]</strong> </p>
-					<p>Date of last counter reset: <strong>$o[5], UTC</strong> </p>
+					<p>Current total number of rscrub pass-through events: <strong>$o[3]</strong> </p>
+					<p>Date of last counter reset: <strong>$o[4], UTC</strong> </p>
 					
 					<form method="post">
 						<div class="checkbox">
@@ -365,7 +356,6 @@ function rscrub_options() {
 	$rscrub_scope = yourls_get_option( 'rscrub_scope' );
 	$rscrub_prefix = yourls_get_option( 'rscrub_prefix' );
 	$rscrub_passthrough = yourls_get_option( 'rscrub_passthrough' );
-	$rscrub_pass_prefix = yourls_get_option( 'rscrub_pass_prefix' );
 	$rscrub_pass_count = yourls_get_option( 'rscrub_pass_count' );
 	$rscrub_pass_count_reset = yourls_get_option( 'rscrub_pass_count_reset' );
 	$rscrub_pass_subdomain_do = yourls_get_option( 'rscrub_pass_subdomain_do' );
@@ -373,7 +363,6 @@ function rscrub_options() {
 		
 	// set some defaults
 	if($rscrub_prefix == null ) $rscrub_prefix = '@';
-	if($rscrub_pass_prefix == null) $rscrub_pass_prefix = '+';
 	if($rscrub_pass_subdomain_is == null) $rscrub_pass_subdomain_is = 'anon';
 	if($rscrub_pass_subdomain_do == null) $rscrub_pass_subdomain_do = 'false';
 	if($rscrub_pass_count_reset == null) $rscrub_pass_count_reset = 'The counter has never been reset';
@@ -382,11 +371,10 @@ function rscrub_options() {
 		$rscrub_scope,				// opt[0]
 		$rscrub_prefix,				// opt[1]
 		$rscrub_passthrough,		// opt[2]
-		$rscrub_pass_prefix,		// opt[3]
-		$rscrub_pass_count,			// opt[4]
-		$rscrub_pass_count_reset,	// opt[5]
-		$rscrub_pass_subdomain_do,	// opt[6]
-		$rscrub_pass_subdomain_is	// opt[7]
+		$rscrub_pass_count,			// opt[3]
+		$rscrub_pass_count_reset,	// opt[4]
+		$rscrub_pass_subdomain_do,	// opt[5]
+		$rscrub_pass_subdomain_is	// opt[6]
 	);
 }
 /*
@@ -405,7 +393,6 @@ function rscrub_primary_ops() {
 		yourls_update_option( 'rscrub_scope', $_POST['rscrub_scope'] );
 		if(isset($_POST['rscrub_prefix'])) yourls_update_option( 'rscrub_prefix', $_POST['rscrub_prefix'] );
 		if(isset($_POST['rscrub_passthrough'])) yourls_update_option( 'rscrub_passthrough', $_POST['rscrub_passthrough'] );
-		if(isset($_POST['rscrub_pass_prefix'])) yourls_update_option( 'rscrub_pass_prefix', $_POST['rscrub_pass_prefix'] );
 		
 		echo '<font color="green">Rscrub options saved. Have a nice day!</font>';
 	}
@@ -435,8 +422,8 @@ function rscrub_dl() {
 
 		$o = rscrub_options();
 		$h = $_SERVER['HTTP_HOST'];
-		if ($o[6] !== 'true') $url = $h.'/'.$o[3];
-		else $url = $o[7].'.'.$h.'/';
+		if ($o[5] !== 'true') $url = $h.'/'.$o[3];
+		else $url = $o[6].'.'.$h.'/';
 
 		// protocol identifier: ssl?
 		if( $_POST['rscrub_ssl'] !== 'no' )
@@ -499,27 +486,41 @@ function rscrub_pass_count_reset() {
 /*
 	Scrubbing engine
 */
+yourls_add_filter('shunt_get_request', 'rscrub_mgr' );
 // Action Manager
 function rscrub_mgr() {
-
-	// Scrub all or some?
-	$rscrub_scope = yourls_get_option( 'rscrub_scope' );
-	if ( $rscrub_scope == 'all' ) {
-	
-		// Pre redirect - hide referrer on ALL urls
-		yourls_add_action( 'pre_redirect', 'rscrub_pre_redirect' );
-	
+	$o = rscrub_options();
+	$data = $_SERVER['REQUEST_URI'];
+	// check for scrubbing trigger
+	if($data[1] !=== $o[1] ) {
+		// no trigger, maybe scrub all
+		if($o[0] = 'all') {
+			yourls_add_action( 'pre_redirect', 'rscrub_pre_redirect' );
+			return false;
+		} else
+			return false;
 	} else {
-	
-		// Loader failed - hide referrer on urls with prefix
-		yourls_add_action( 'loader_failed', 'rscrub_loader_failed_0' );
+		// scrubbing triggered
+ 		$data = substr($data, 2);
+		// check for url v keyword
+		if (filter_var($data, FILTER_VALIDATE_URL)) {
+			// url: enabled?
+			if($o[2] = 'true') {
+				$o[3] = $o[3] + 1;
+				yourls_update_option( 'rscrub_pass_count', $o[3] );
+				$data = yourls_sanitize_url($data);
+				// scrub it
+				rscrub($data);
+				exit;
+			} else 
+				return false;
+		} else {
+			// keyword: enable scrubbing
+			yourls_add_action( 'pre_redirect', 'rscrub_pre_redirect' );
+			$_SERVER['REQUEST_URI'] = '/'.$data;
+			return false;
+		}
 	}
-	
-	// scrub ref w/out shorten
-	$rscrub_passthrough = yourls_get_option( 'rscrub_passthrough' );
-	if($rscrub_passthrough == 'true') {
-		yourls_add_action( 'loader_failed', 'rscrub_lf_passthrough' );
-	} 	
 }
 
 // universal scrubbing for short url's
@@ -529,51 +530,6 @@ function rscrub_pre_redirect( $args ) {
 	rscrub($url);
 	// Now die so the normal redirect is interrupted
 	die();
-}
-// conditional scrubbing for short url's - default action
-function rscrub_loader_failed_0( $args ) {
-
-	// get the prefix & set a default value
-	$rscrub_prefix = yourls_get_option( 'rscrub_prefix' );
-	if( $rscrub_prefix == null ) $rscrub_prefix = '@';
-	
-	// look for the prefix on loader failures
-	if( preg_match( '!^'. $rscrub_prefix .'(.*)!', $args[0], $matches ) ) {
-	
-		// match found: prepare url for scrubbing
-		$keyword = yourls_sanitize_keyword( $matches[1] );
-		require_once( dirname( __FILE__ ) . '/../../../includes/load-yourls.php' );
-		$url = yourls_get_keyword_longurl( $keyword );
-		
-		// send url to scrubber
-		rscrub($url);
-
-		exit;
-	}	
-}
-// pass-through scrubbing
-function rscrub_lf_passthrough( $args ) {
-
-	//get the prefix & set a default value
-	$rscrub_pass_prefix = yourls_get_option( 'rscrub_pass_prefix' );
-	if($rscrub_pass_prefix == null) $rscrub_pass_prefix = '+';
-	
-	// look for the prefix on loader failures
-	if( preg_match( '!/' . $rscrub_pass_prefix . '(.*)!', $args[0], $matches ) ) {
-	
-		// match found: update counter
-		$rscrub_pass_count = yourls_get_option( 'rscrub_pass_count' );
-		$rscrub_pass_count = $rscrub_pass_count + 1;
-		yourls_update_option( 'rscrub_pass_count', $rscrub_pass_count );
-		
-		// prep url
-		$url = $matches[1];
-		$url = yourls_sanitize_url($url);
-		
-		// send url to scrubber
-		rscrub($url);
-		exit;
-	}
 }
 // actual scrubbing
 function rscrub( $url ) {
@@ -590,7 +546,6 @@ function rscrub( $url ) {
 	// change the location on the parent document from within an iframe
 	// works with all major browsers as of 2015-05-12	
 	echo "<iframe style=\"display:none\" src=\"javascript:parent.location.replace('".$url."'+(parent.location.hash||''))\">";
-
 	// backup method (results may vary)
 	// May scrub under SSL, will typically show the LAST redirect url (the yourls url).
 	// 1 second delay so the iframe gets a chance first.

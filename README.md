@@ -30,13 +30,13 @@ It is possible to use subdomains with Rscrub so that you do away with the prefix
 ## REWRITE RULES
 RewriteEngine On
 
-# RSCRUB - LONG URL
-RewriteCond %{HTTP_HOST} ^anon\.(sho\.rt)$ [NC]
-RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/+$1 [P]
+# RSCRUB
+RewriteCond %{HTTP_HOST} ^a(non)?\. [NC]
+RewriteRule ^(https?://?)(.*)$ https://sho.rt/@https://$2 [P]
+RewriteCond %{HTTP_HOST} ^a(non)?\. [NC]
+RewriteCond %{REQUEST_URI} !^https?://.* [NC]
+RewriteRule (.*)$ https://sho.rt/@$1 [P]
 
-# RSCRUB - SHORT URL
-RewriteCond %{HTTP_HOST} ^a\.(sho\.rt)$ [NC]
-RewriteRule ^/?([a-zA-Z0-9]+)$ https://%1/@$1 [P]
 ```
 With this `example.com` is scrubbed by entering `https://anon.sho.rt.com/http://example.com` 
 
