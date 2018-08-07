@@ -3,7 +3,7 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 2.0.0
+Version: 2.0.1
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
@@ -492,7 +492,7 @@ function rscrub_mgr() {
 	$o = rscrub_options();
 	$data = $_SERVER['REQUEST_URI'];
 	// check for scrubbing trigger
-	if($data[1] !=== $o[1] ) {
+	if($data[1] !== $o[1] ) {
 		// no trigger, maybe scrub all
 		if($o[0] = 'all') {
 			yourls_add_action( 'pre_redirect', 'rscrub_pre_redirect' );
