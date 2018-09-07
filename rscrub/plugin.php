@@ -3,7 +3,7 @@
 Plugin Name: Rscrub
 Plugin URI: https://github.com/joshp23/YOURLS-rscrub
 Description: Referrer scrubbing swiss army knife for YOURLS
-Version: 2.0.1
+Version: 2.0.2
 Author: Josh Panter <joshu@unfettered.net>
 Author URI: https://unfettered.net
 */
@@ -16,14 +16,11 @@ function rscrub_add_page() {
 }
 // Maybe inject js/css for admin page
 yourls_add_action( 'html_head', 'rscrub_head' );
-function rscrub_head() {
-	if (defined('YOURLS_JP23_HEAD_FILES') == false ) {
-		define( 'YOURLS_JP23_HEAD_FILES', true );
+function rscrub_head($context) {
+	if ($context[0] == 'plugin_page_rscrub') {
 		$home = YOURLS_SITE;
-		echo "\n<! --------------------------JP23_HEAD_FILES Start-------------------------- >\n";
 		echo "<link rel=\"stylesheet\" href=\"".$home."/css/infos.css?v=".YOURLS_VERSION."\" type=\"text/css\" media=\"screen\" />\n";
 		echo "<script src=\"".$home."/js/infos.js?v=".YOURLS_VERSION."\" type=\"text/javascript\"></script>\n";
-		echo "<! --------------------------JP23_HEAD_FILES END---------------------------- >\n";
 	}
 }
 // Display admin page
