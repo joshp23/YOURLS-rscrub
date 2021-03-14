@@ -52,6 +52,7 @@ Please note: If you are using SSL (as in the htaccess example above) make sure t
 
 ### Tips
 Dogecoin: DARhgg9q3HAWYZuN95DKnFonADrSWUimy3
+
 ===========================
 
     Copyright (C) 2016 Josh Panter
