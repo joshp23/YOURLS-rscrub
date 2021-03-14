@@ -50,6 +50,8 @@ Please note: If you are using SSL (as in the htaccess example above) make sure t
 * This plugin is offered "as is", and may or may not work for you. Give it a try, and have fun!
 * The referrer header is controlled by the web browser, so methods used in here can stop working at any time.
 
+### Tips
+Dogecoin: DARhgg9q3HAWYZuN95DKnFonADrSWUimy3
 ===========================
 
     Copyright (C) 2016 Josh Panter
