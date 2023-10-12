@@ -488,6 +488,13 @@ yourls_add_filter('shunt_get_request', 'rscrub_mgr' );
 function rscrub_mgr() {
 	$o = rscrub_options();
 	$data = $_SERVER['REQUEST_URI'];
+
+	// make sure we always use TWO slashes in http[s]:// urls
+	// required when running in IIS. Double slashes are removed by Rewrite Rules because they are (rightly) considered invalid
+	$pattern = '~(http[s]?):(\/+)~';
+	$replacement = '$1://';
+	$data = preg_replace($pattern, $replacement, $data);
+	
 	// check for scrubbing trigger
 	if($data[1] !== $o[1] ) {
 		// no trigger, maybe scrub all
